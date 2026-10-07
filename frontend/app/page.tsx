@@ -22,6 +22,7 @@ import { WishlistDrawer } from "@/components/WishlistDrawer";
 import { ListingDetailModal } from "@/components/ListingDetailModal";
 import { MobileNav } from "@/components/MobileNav";
 import { useToast } from "@/components/ui/toast";
+import { getCurrentUserId, setCurrentUserId } from "@/lib/current-user";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 export default function ExplorePage() {
@@ -77,9 +78,13 @@ export default function ExplorePage() {
         if (!isMounted) return;
         setUsers(userData);
         if (userData.length > 0) {
-          // Default to the first guest user (or first user)
-          const guestUser = userData.find((u) => u.role === "guest") || userData[0];
-          setCurrentUser(guestUser);
+          const savedId = getCurrentUserId();
+          const activeUser =
+            userData.find((u) => u.id === savedId) ||
+            userData.find((u) => u.role === "guest") ||
+            userData[0];
+          setCurrentUser(activeUser);
+          setCurrentUserId(activeUser.id);
         }
         setAmenitiesCatalog(amenitiesData);
       })
@@ -259,6 +264,7 @@ export default function ExplorePage() {
         users={users}
         onSelectUser={(u) => {
           setCurrentUser(u);
+          setCurrentUserId(u.id);
           showToast(`Switched active persona to ${u.name}`, "info");
         }}
         favoritesCount={favoritesSet.size}

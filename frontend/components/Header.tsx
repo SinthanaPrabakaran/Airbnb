@@ -274,6 +274,7 @@ export function Header({
                           <button
                             key={u.id}
                             onClick={() => {
+                              setCurrentUserId(u.id);
                               onSelectUser(u);
                               setIsMenuOpen(false);
                             }}

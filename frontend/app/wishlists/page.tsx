@@ -40,8 +40,14 @@ export default function WishlistsPage() {
       if (!isMounted) return;
       setUsers(data);
       const savedUserId = getCurrentUserId();
-      const active = data.find((u) => u.id === savedUserId) || data[0];
-      if (active) setCurrentUser(active);
+      const active =
+        data.find((u) => u.id === savedUserId) ||
+        data.find((u) => u.role === "guest") ||
+        data[0];
+      if (active) {
+        setCurrentUser(active);
+        setCurrentUserId(active.id);
+      }
     });
 
     return () => {

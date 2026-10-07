@@ -14,7 +14,7 @@ import {
   Heart,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import { getCurrentUserId } from "@/lib/current-user";
+import { getCurrentUserId, setCurrentUserId } from "@/lib/current-user";
 import { ListingDetail, User } from "@/types";
 import { Header } from "@/components/Header";
 import { ListingHeader } from "@/components/listing/ListingHeader";
@@ -67,8 +67,13 @@ export default function ListingDetailPage({ params }: PageProps) {
       if (!isMounted) return;
       setUsers(data);
       if (data.length > 0) {
-        const guest = data.find((u) => u.role === "guest") || data[0];
-        setCurrentUser(guest);
+        const savedId = getCurrentUserId();
+        const active =
+          data.find((u) => u.id === savedId) ||
+          data.find((u) => u.role === "guest") ||
+          data[0];
+        setCurrentUser(active);
+        setCurrentUserId(active.id);
       }
     });
 
@@ -233,7 +238,10 @@ export default function ListingDetailPage({ params }: PageProps) {
         <Header
           currentUser={currentUser}
           users={users}
-          onSelectUser={setCurrentUser}
+          onSelectUser={(u) => {
+          setCurrentUser(u);
+          setCurrentUserId(u.id);
+        }}
           favoritesCount={favoritesSet.size}
           onOpenFavorites={() => setIsWishlistDrawerOpen(true)}
           onOpenFilters={() => {}}
@@ -262,7 +270,10 @@ export default function ListingDetailPage({ params }: PageProps) {
         <Header
           currentUser={currentUser}
           users={users}
-          onSelectUser={setCurrentUser}
+          onSelectUser={(u) => {
+          setCurrentUser(u);
+          setCurrentUserId(u.id);
+        }}
           favoritesCount={favoritesSet.size}
           onOpenFavorites={() => setIsWishlistDrawerOpen(true)}
           onOpenFilters={() => {}}
@@ -297,7 +308,10 @@ export default function ListingDetailPage({ params }: PageProps) {
       <Header
         currentUser={currentUser}
         users={users}
-        onSelectUser={setCurrentUser}
+        onSelectUser={(u) => {
+          setCurrentUser(u);
+          setCurrentUserId(u.id);
+        }}
         favoritesCount={favoritesSet.size}
         onOpenFavorites={() => setIsWishlistDrawerOpen(true)}
         onOpenFilters={() => router.push("/")}
