@@ -70,7 +70,7 @@ export function BookingCard({
         </div>
 
         {/* Picker Inputs: Date Range & Guests */}
-        <div className="rounded-2xl border border-neutral-300 overflow-hidden divide-y divide-neutral-200">
+        <div className="rounded-2xl border border-neutral-300 divide-y divide-neutral-200 relative bg-white">
           <DateRangePicker
             checkIn={checkIn}
             checkOut={checkOut}

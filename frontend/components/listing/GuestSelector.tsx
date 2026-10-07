@@ -33,10 +33,10 @@ export function GuestSelector({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between rounded-xl border border-neutral-300 bg-white p-2.5 text-left transition hover:border-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+        className="flex w-full items-center justify-between rounded-b-2xl bg-white p-3 text-left transition hover:bg-neutral-50/70 focus:outline-none"
       >
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-800">
+          <label className="block text-[10px] font-extrabold uppercase tracking-wider text-neutral-800">
             GUESTS
           </label>
           <div className="text-xs font-semibold text-neutral-900 mt-0.5">
@@ -52,7 +52,7 @@ export function GuestSelector({
 
       {/* Popover */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 z-40 w-full rounded-2xl border border-neutral-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-100 space-y-4">
+        <div className="absolute right-0 top-full mt-2 z-50 w-full rounded-2xl border border-neutral-200 bg-white p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-bold text-neutral-900">Total Guests</p>
