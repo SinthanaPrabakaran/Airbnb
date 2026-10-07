@@ -14,6 +14,7 @@ import {
   Heart,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { getCurrentUserId } from "@/lib/current-user";
 import { ListingDetail, User } from "@/types";
 import { Header } from "@/components/Header";
 import { ListingHeader } from "@/components/listing/ListingHeader";
@@ -41,6 +42,7 @@ export default function ListingDetailPage({ params }: PageProps) {
   const [listing, setListing] = useState<ListingDetail | null>(null);
   const [unavailableDates, setUnavailableDates] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isReserving, setIsReserving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 2. User & Persona States
@@ -158,27 +160,71 @@ export default function ListingDetailPage({ params }: PageProps) {
     setCheckOut(end);
   };
 
-  // Reserve button action
-  const handleReserve = () => {
+  // Reserve button action: creates authoritative booking in backend and routes to /checkout/[bookingId]
+  const handleReserve = async () => {
     if (!checkIn || !checkOut) {
       showToast("Please choose check-in and checkout dates to proceed", "info");
       return;
     }
-    if (guests > (listing?.max_guests || 1)) {
-      showToast(`Maximum ${listing?.max_guests} guests allowed`, "error");
+
+    if (new Date(checkOut) <= new Date(checkIn)) {
+      showToast("Checkout date must be strictly after check-in date", "error");
       return;
     }
 
-    // Move to checkout / confirmation flow
-    const checkoutQuery = new URLSearchParams({
-      listingId: String(listingId),
-      checkIn,
-      checkOut,
-      guests: String(guests),
-    }).toString();
+    if (guests > (listing?.max_guests || 1)) {
+      showToast(`Maximum ${listing?.max_guests} guests allowed for this property`, "error");
+      return;
+    }
 
-    showToast(`Proceeding to reserve stay for ${guests} guests...`, "success");
-    router.push(`/checkout?${checkoutQuery}`);
+    if (!listing) return;
+
+    // Client pre-check for unavailable dates
+    const hasOverlap = unavailableDates.some(
+      (d) => d >= checkIn && d < checkOut
+    );
+    if (hasOverlap) {
+      showToast("The selected dates overlap with existing bookings. Please select alternative dates.", "error");
+      return;
+    }
+
+    try {
+      setIsReserving(true);
+      const guestId = currentUser?.id || getCurrentUserId();
+
+      // Send booking request to backend: POST /api/bookings
+      // Payload contains only listing_id, guest_id, check_in, check_out, guests
+      const newBooking = await api.bookings.create({
+        listing_id: listing.id,
+        guest_id: guestId,
+        check_in: checkIn,
+        check_out: checkOut,
+        guests,
+      });
+
+      // Refresh availability for this listing
+      try {
+        const avail = await api.listings.getAvailability(listing.id);
+        setUnavailableDates(avail.unavailable_dates || []);
+      } catch {}
+
+      showToast("Reservation started! Proceeding to checkout...", "success");
+      router.push(`/checkout/${newBooking.id}`);
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Failed to create reservation. Dates may be booked or unavailable.";
+      showToast(errorMsg, "error");
+
+      // Refresh availability in case another user just booked the same dates
+      try {
+        const avail = await api.listings.getAvailability(listing.id);
+        setUnavailableDates(avail.unavailable_dates || []);
+      } catch {}
+    } finally {
+      setIsReserving(false);
+    }
   };
 
   if (isLoading) {
@@ -385,6 +431,7 @@ export default function ListingDetailPage({ params }: PageProps) {
               onGuestsChange={setGuests}
               unavailableDates={unavailableDates}
               onReserve={handleReserve}
+              isReserving={isReserving}
             />
           </div>
         </div>

@@ -342,13 +342,83 @@ The backend exposes a RESTful API with automated OpenAPI / Swagger documentation
 
 ---
 
+## Frontend Architecture & Pages
+
+### 1. Explore / Home Page (`/`)
+- **Header**: Airbnb logo, compact segmented search pill, wishlist counter badge, user persona switcher.
+- **Segmented Search Bar**: Interactive Where, Check-in, Check-out, and Guest count selectors.
+- **Category Carousel**: Icons for Beachfront, Amazing views, Cabins, Villas, Pools, Apartments, Houses, Chalets, Treehouses.
+- **Photo-Forward Grid**: Responsive multi-column layout with hover image carousels, heart favorite toggles, and rating indicators.
+- **Filter Modal**: Price range sliders, property type chips, guest count selectors, amenities checklist, and sorting options.
+- **Wishlist Drawer**: Slide-over drawer to review and manage saved favorite properties.
+
+### 2. Listing Detail Page (`/listings/[id]`)
+- **ListingHeader**: Title, star ratings, review count, Superhost badge, location, Share button (Web Share API + clipboard fallback), and Wishlist heart button.
+- **ImageGallery**:
+  - Desktop: 5-photo grid with prominent hero image and "Show all photos" trigger.
+  - Mobile: Swipeable touch carousel with counter indicator.
+- **GalleryModal**: Fullscreen lightbox with keyboard navigation (`Esc`, `ArrowLeft`, `ArrowRight`) and thumbnail reel.
+- **HostCard**: Host avatar, Superhost status, years hosting, response rates, and contact button.
+- **Expandable Description**: Clean typography with "Show more" / "Show less" toggle.
+- **AmenitiesGrid & Modal**: Categorized amenities with icons, plus a dedicated "Show all amenities" dialog.
+- **LocationSection**: Stylized neighborhood map visualization with glowing pin marker.
+- **ReviewsSection**: Category ratings breakdown (Cleanliness, Accuracy, Communication, Location, Check-in, Value) and guest review cards.
+- **Sticky BookingCard**:
+  - Desktop: Right-column sticky card (`top-28`).
+  - Mobile: Fixed bottom reservation bar with dates and reserve CTA.
+  - **DateRangePicker**: Interactive calendar that fetches `GET /api/listings/{id}/availability` and automatically disables booked/unavailable dates.
+  - **GuestSelector**: Capacity dropdown constrained by `max_guests`.
+  - **PriceBreakdown**: Live calculation of nightly total, cleaning fee, and 14% Airbnb service fee.
+  - **Reserve Button**: Validates dates and capacity, triggers `POST /api/bookings`, and seamlessly initiates checkout.
+
+### 3. Guest Booking Workflow (`/checkout/[bookingId]`)
+- **Authoritative Server Calculations**: Client sends only `listing_id`, `guest_id`, `check_in`, `check_out`, and `guests`. Nights, nightly rates, cleaning fees, service fees, and totals are computed strictly server-side.
+- **Overlap Conflict Rejection**: Rigorous SQL interval overlap detection (`existing.check_in < new_check_out AND existing.check_out > new_check_in`).
+- **Listing Summary Card**: Right-column sticky summary with cover image, host information, ratings, and transparent fee breakdown.
+- **Mock Payment Sandbox**:
+  - Educational simulation form with card number formatting, expiration date, CVV, cardholder name, and billing ZIP.
+  - One-click "Autofill test data" button for rapid evaluation.
+  - Alternatives for UPI / QR and Net Banking tabs.
+  - Clear sandbox disclaimer indicating no real cards are charged.
+- **Interactive Payment Authorization**:
+  - "Pay and confirm" button with simulated bank authorization delay and loading spinner.
+  - On authorization, calls `POST /api/bookings/{id}/pay` to transition reservation to confirmed status.
+
+### 4. Reservation Confirmation (`/booking/[id]/confirmation`)
+- Celebratory confirmation screen with generated unique confirmation code (`HM-...`).
+- Property card with address, coordinates, and host profile.
+- Check-in instructions, stay dates, guest count, and itemized payment receipt.
+- Direct quick actions to print receipt (`window.print()`), return to explore, or navigate to **My Trips**.
+
+### 5. My Trips Dashboard (`/trips`)
+- Route displaying all reservations for the active user profile (`CURRENT_USER_ID = 1`).
+- Filter tabs: All, Upcoming, and Cancelled.
+- Rich trip cards showing cover photos, destination, check-in / check-out dates, guest count, price, and status badges.
+- **BookingDetailsModal**:
+  - Comprehensive pop-up modal to inspect any reservation.
+  - Link directly to the listing page.
+  - Integrated reservation cancellation (`PATCH /api/bookings/{id}/cancel`) with prompt and toast feedback.
+  - Re-opens cancelled dates in the listing availability calendar immediately.
+- Empty state with invitation to explore when no trips are booked.
+- Persona synchronization: switching profiles in the global header reloads the trips for that specific guest.
+
+---
+
 ## Testing & Verification
 
 Run the automated integration test suite covering all 30 REST endpoints and validation constraints:
 
 ```bash
 cd backend
-python test_api.py
+.\venv\Scripts\python test_api.py
+```
+
+Run frontend typechecking and production build:
+
+```bash
+cd frontend
+npx tsc --noEmit
+npm run build
 ```
 
 ---

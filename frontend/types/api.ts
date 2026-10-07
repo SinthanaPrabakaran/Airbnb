@@ -123,3 +123,39 @@ export interface ListingFilterParams {
   page?: number;
   limit?: number;
 }
+
+export interface BookingDetail {
+  id: number;
+  listing_id: number;
+  guest_id: number;
+  check_in: string;
+  check_out: string;
+  guests: number;
+  nights: number;
+  nightly_total: number;
+  cleaning_fee: number;
+  service_fee: number;
+  total_price: number;
+  status: "pending" | "confirmed" | "cancelled" | "completed" | string;
+  created_at: string;
+  listing_title?: string | null;
+  listing_city?: string | null;
+  listing_country?: string | null;
+  listing_location?: string | null;
+  cover_image?: string | null;
+  guest_name?: string | null;
+  guest_email?: string | null;
+  host_id?: number | null;
+  host_name?: string | null;
+  host_avatar?: string | null;
+  property_type?: string | null;
+  price_per_night?: number | null;
+}
+
+export interface BookingCreatePayload {
+  listing_id: number;
+  guest_id: number;
+  check_in: string;
+  check_out: string;
+  guests: number;
+}

@@ -213,6 +213,14 @@ export function Header({
 
                   {/* Quick Action Links */}
                   <div className="px-2 pt-1.5 space-y-0.5">
+                    <Link
+                      href="/trips"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-neutral-800 hover:bg-neutral-50"
+                    >
+                      <Compass className="h-4 w-4 text-[#FF385C]" />
+                      <span>My Trips</span>
+                    </Link>
                     <button
                       onClick={() => {
                         onOpenFavorites();

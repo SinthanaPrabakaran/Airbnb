@@ -16,6 +16,7 @@ interface BookingCardProps {
   onGuestsChange: (guests: number) => void;
   unavailableDates: string[];
   onReserve: () => void;
+  isReserving?: boolean;
 }
 
 export function BookingCard({
@@ -27,6 +28,7 @@ export function BookingCard({
   onGuestsChange,
   unavailableDates,
   onReserve,
+  isReserving = false,
 }: BookingCardProps) {
   // Compute nights
   const nights = useMemo(() => {
@@ -87,10 +89,20 @@ export function BookingCard({
         <div>
           <button
             onClick={onReserve}
+            disabled={isReserving}
             type="button"
-            className="w-full rounded-2xl bg-gradient-to-r from-[#E00B41] to-[#FF385C] py-3.5 text-sm font-bold text-white shadow-md shadow-[#FF385C]/30 transition hover:brightness-105 active:scale-98"
+            className="w-full rounded-2xl bg-gradient-to-r from-[#E00B41] to-[#FF385C] py-3.5 text-sm font-bold text-white shadow-md shadow-[#FF385C]/30 transition hover:brightness-105 active:scale-98 disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {hasDates ? "Reserve" : "Check availability"}
+            {isReserving ? (
+              <>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span>Reserving stay...</span>
+              </>
+            ) : hasDates ? (
+              "Reserve"
+            ) : (
+              "Check availability"
+            )}
           </button>
 
           <p className="mt-2.5 text-center text-xs text-neutral-500 font-normal">
@@ -134,10 +146,20 @@ export function BookingCard({
 
           <button
             onClick={onReserve}
+            disabled={isReserving}
             type="button"
-            className="rounded-xl bg-gradient-to-r from-[#E00B41] to-[#FF385C] px-6 py-3 text-xs font-bold text-white shadow-md shadow-[#FF385C]/30 transition active:scale-95"
+            className="rounded-xl bg-gradient-to-r from-[#E00B41] to-[#FF385C] px-6 py-3 text-xs font-bold text-white shadow-md shadow-[#FF385C]/30 transition active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
           >
-            {hasDates ? "Reserve" : "Check availability"}
+            {isReserving ? (
+              <>
+                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span>Reserving...</span>
+              </>
+            ) : hasDates ? (
+              "Reserve"
+            ) : (
+              "Check availability"
+            )}
           </button>
         </div>
       </div>

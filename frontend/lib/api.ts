@@ -2,6 +2,7 @@ import { apiClient } from "./api-client";
 import {
   Amenity,
   AvailabilityResponse,
+  BookingDetail,
   Favorite,
   HealthResponse,
   ListingDetail,
@@ -55,5 +56,25 @@ export const api = {
       apiClient.delete<{ success: boolean; message: string }>(
         `/api/favorites/${userId}/${listingId}`
       ),
+  },
+
+  bookings: {
+    create: (data: {
+      listing_id: number;
+      guest_id: number;
+      check_in: string;
+      check_out: string;
+      guests: number;
+    }) => apiClient.post<BookingDetail>("/api/bookings", data),
+
+    getById: (id: number) => apiClient.get<BookingDetail>(`/api/bookings/${id}`),
+
+    pay: (id: number) => apiClient.post<BookingDetail>(`/api/bookings/${id}/pay`),
+
+    cancel: (id: number, userId: number = 1) =>
+      apiClient.patch<BookingDetail>(`/api/bookings/${id}/cancel?user_id=${userId}`),
+
+    getUserTrips: (userId: number) =>
+      apiClient.get<BookingDetail[]>(`/api/bookings/user/${userId}`),
   },
 };

@@ -45,9 +45,6 @@ def create_booking(db: Session, booking_in: BookingCreate) -> Booking:
     if not guest:
         raise BookingError(f"User with id {booking_in.guest_id} not found", status_code=404)
 
-    if listing.host_id == booking_in.guest_id:
-        raise BookingError("Hosts cannot create bookings on their own listings", status_code=400)
-
     if booking_in.guests > listing.max_guests:
         raise BookingError(
             f"Guests count ({booking_in.guests}) exceeds maximum allowed ({listing.max_guests})",
@@ -89,6 +86,31 @@ def create_booking(db: Session, booking_in: BookingCreate) -> Booking:
     db.add(booking)
     db.commit()
     db.refresh(booking)
+    return get_booking_by_id(db, booking.id) or booking
+
+
+def get_booking_by_id(db: Session, booking_id: int) -> Optional[Booking]:
+    """Retrieve a single booking by ID with guest, listing, images, and host loaded."""
+    stmt = (
+        select(Booking)
+        .where(Booking.id == booking_id)
+        .options(
+            joinedload(Booking.guest),
+            joinedload(Booking.listing).joinedload(Listing.host),
+            joinedload(Booking.listing).selectinload(Listing.images),
+        )
+    )
+    return db.scalars(stmt).unique().first()
+
+
+def confirm_booking_payment(db: Session, booking_id: int) -> Optional[Booking]:
+    """Confirm a booking after simulated payment."""
+    booking = get_booking_by_id(db, booking_id)
+    if not booking:
+        return None
+    booking.status = "confirmed"
+    db.commit()
+    db.refresh(booking)
     return booking
 
 
@@ -99,6 +121,7 @@ def get_user_bookings(db: Session, guest_id: int) -> List[Booking]:
         .where(Booking.guest_id == guest_id)
         .options(
             joinedload(Booking.guest),
+            joinedload(Booking.listing).joinedload(Listing.host),
             joinedload(Booking.listing).selectinload(Listing.images),
         )
         .order_by(Booking.check_in.desc())

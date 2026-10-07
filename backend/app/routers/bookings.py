@@ -12,7 +12,10 @@ from app.services.booking_service import (
     BookingConflictError,
     BookingError,
     BookingNotFoundError,
+    cancel_booking,
+    confirm_booking_payment,
     create_booking,
+    get_booking_by_id,
     get_listing_bookings,
     get_user_bookings,
 )
@@ -25,6 +28,13 @@ def to_booking_detail_response(b: Booking) -> BookingDetailResponse:
     cover_image = None
     if b.listing and b.listing.images:
         cover_image = b.listing.images[0].image_url
+
+    host_id = b.listing.host_id if b.listing else None
+    host_name = None
+    host_avatar = None
+    if b.listing and b.listing.host:
+        host_name = b.listing.host.name
+        host_avatar = b.listing.host.avatar
 
     return BookingDetailResponse(
         id=b.id,
@@ -43,10 +53,15 @@ def to_booking_detail_response(b: Booking) -> BookingDetailResponse:
         listing_title=b.listing.title if b.listing else None,
         listing_city=b.listing.city if b.listing else None,
         listing_country=b.listing.country if b.listing else None,
+        listing_location=b.listing.location if b.listing else None,
         cover_image=cover_image,
         guest_name=b.guest.name if b.guest else None,
         guest_email=b.guest.email if b.guest else None,
-        host_id=b.listing.host_id if b.listing else None,
+        host_id=host_id,
+        host_name=host_name,
+        host_avatar=host_avatar,
+        property_type=b.listing.property_type if b.listing else None,
+        price_per_night=b.listing.price_per_night if b.listing else None,
     )
 
 
@@ -62,6 +77,61 @@ def make_booking(booking_in: BookingCreate, db: Session = Depends(get_db)):
         booking = create_booking(db, booking_in=booking_in)
         return to_booking_detail_response(booking)
     except (BookingConflictError, BookingNotFoundError, BookingError) as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+
+
+@router.get(
+    "/{booking_id}",
+    response_model=BookingDetailResponse,
+    summary="Get booking by ID",
+    description="Retrieve details for a specific booking by ID.",
+)
+def get_booking(booking_id: int, db: Session = Depends(get_db)):
+    booking = get_booking_by_id(db, booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking with id {booking_id} not found",
+        )
+    return to_booking_detail_response(booking)
+
+
+@router.post(
+    "/{booking_id}/pay",
+    response_model=BookingDetailResponse,
+    summary="Simulate payment confirmation for booking",
+    description="Transition booking to confirmed status following mock payment.",
+)
+def pay_booking(booking_id: int, db: Session = Depends(get_db)):
+    booking = confirm_booking_payment(db, booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking with id {booking_id} not found",
+        )
+    return to_booking_detail_response(booking)
+
+
+@router.patch(
+    "/{booking_id}/cancel",
+    response_model=BookingDetailResponse,
+    summary="Cancel reservation",
+    description="Cancel an active booking.",
+)
+def cancel_user_booking(
+    booking_id: int,
+    user_id: int = 1,
+    db: Session = Depends(get_db),
+):
+    try:
+        booking = cancel_booking(db, booking_id=booking_id, user_id=user_id)
+        if not booking:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Booking with id {booking_id} not found",
+            )
+        return to_booking_detail_response(booking)
+    except BookingError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 

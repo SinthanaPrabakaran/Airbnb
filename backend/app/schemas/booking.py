@@ -52,9 +52,14 @@ class BookingDetailResponse(BookingResponse):
     listing_title: Optional[str] = None
     listing_city: Optional[str] = None
     listing_country: Optional[str] = None
+    listing_location: Optional[str] = None
     cover_image: Optional[str] = None
     guest_name: Optional[str] = None
     guest_email: Optional[str] = None
     host_id: Optional[int] = None
+    host_name: Optional[str] = None
+    host_avatar: Optional[str] = None
+    property_type: Optional[str] = None
+    price_per_night: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
