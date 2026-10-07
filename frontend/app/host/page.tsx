@@ -201,7 +201,7 @@ export default function HostDashboardPage() {
                   <Building className="h-10 w-10 text-neutral-300 mx-auto" />
                   <h3 className="text-sm font-bold text-neutral-800">You haven't published any listings yet</h3>
                   <p className="text-xs text-neutral-500 max-w-sm mx-auto">
-                    List your home, villa, or apartment on stayhub to start receiving reservations.
+                    List your home, villa, or apartment on staybnb to start receiving reservations.
                   </p>
                   <Link
                     href="/host/listings/new"

@@ -25,8 +25,8 @@ export const DEFAULT_CURRENT_HOST: User = {
     "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
 };
 
-const USER_STORAGE_KEY = "stayhub_current_user_id";
-const HOST_STORAGE_KEY = "stayhub_current_host_id";
+const USER_STORAGE_KEY = "staybnb_current_user_id";
+const HOST_STORAGE_KEY = "staybnb_current_host_id";
 
 export function getCurrentUserId(): number {
   if (typeof window === "undefined") return CURRENT_USER_ID;

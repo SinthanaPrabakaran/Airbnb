@@ -49,7 +49,7 @@ export default function NewListingPage() {
             Publish a New Listing
           </h1>
           <p className="mt-1 text-xs text-neutral-500">
-            Fill in the details below to add your property to the stayhub marketplace.
+            Fill in the details below to add your property to the staybnb marketplace.
           </p>
         </div>
 

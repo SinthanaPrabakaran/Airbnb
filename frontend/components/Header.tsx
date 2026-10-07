@@ -77,7 +77,7 @@ export function Header({
             <Link
               href="/"
               className="flex items-center gap-2 group transition-transform active:scale-95"
-              aria-label="Stayhub Home"
+              aria-label="Staybnb Home"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#E00B41] to-[#FF385C] text-white shadow-sm shadow-[#FF385C]/30 transition-transform group-hover:scale-105">
                 <svg
@@ -89,7 +89,7 @@ export function Header({
                 </svg>
               </div>
               <span className="hidden text-xl font-black tracking-tight text-[#FF385C] sm:inline-block">
-                stayhub
+                staybnb
               </span>
             </Link>
 

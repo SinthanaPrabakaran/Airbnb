@@ -92,7 +92,7 @@ export function HostHeader({ currentHost: propHost, onSelectHost }: HostHeaderPr
           {/* Logo & Host Mode Badge */}
           <div className="flex items-center gap-3">
             <Link href="/host" className="flex items-center gap-1.5">
-              <span className="text-xl font-black tracking-tight text-[#FF385C]">stayhub</span>
+              <span className="text-xl font-black tracking-tight text-[#FF385C]">staybnb</span>
             </Link>
             <span className="rounded-full bg-neutral-900 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white">
               Host
