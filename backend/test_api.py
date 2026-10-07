@@ -177,9 +177,26 @@ def run_tests():
     assert "exceed" in resp.json()["detail"].lower()
     print(f"[18] POST /api/bookings (excess guests) -> 400 Bad Request rejected correctly")
 
-    # Valid future booking
-    future_start = today + timedelta(days=70)
-    future_end = today + timedelta(days=74)
+    # Dynamically find a non-overlapping future date window for repeated test idempotency
+    avail_resp = client.get(f"/api/listings/{listing_id}/availability").json()
+    booked_dates_set = set(avail_resp.get("unavailable_dates", []))
+    offset = 70
+    while True:
+        candidate_start = today + timedelta(days=offset)
+        candidate_end = today + timedelta(days=offset + 4)
+        has_conflict = False
+        curr = candidate_start
+        while curr < candidate_end:
+            if curr.isoformat() in booked_dates_set:
+                has_conflict = True
+                break
+            curr += timedelta(days=1)
+        if not has_conflict:
+            future_start = candidate_start
+            future_end = candidate_end
+            break
+        offset += 10
+
     valid_booking = {
         "listing_id": listing_id,
         "guest_id": guest_id,

@@ -251,18 +251,104 @@ python -m app.seed.verify_db
 
 ---
 
-## Health Check Endpoint
+---
 
-```http
-GET /api/health
-```
+## REST API Reference
 
-**Response (200 OK)**:
-```json
-{
-  "status": "ok",
-  "service": "airbnb-backend"
-}
+The backend exposes a RESTful API with automated OpenAPI / Swagger documentation accessible at `http://localhost:8000/docs`.
+
+### 1. Listings
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/listings` | Search and filter listings with pagination and sorting |
+| `GET` | `/api/listings/{id}` | Detailed property information, gallery, host, reviews, and booked dates |
+| `GET` | `/api/listings/{id}/availability` | Unavailable dates and booked ranges for calendar pickers |
+| `GET` | `/api/listings/{id}/reviews` | Verified guest reviews for a listing |
+| `POST` | `/api/listings/{id}/reviews` | Submit a new verified review (1-5 stars) |
+
+#### `GET /api/listings` Query Parameters:
+- `location`: Free-text search across city, country, address, or title (e.g. `?location=Paris`)
+- `city`, `country`: Exact location filters
+- `min_price`, `max_price`: Price range per night
+- `property_type`: Filter by type (`Villa`, `Cabin`, `Loft`, `Chalet`, `Apartment`, etc.)
+- `guests`: Minimum guest capacity
+- `amenities`: Comma-separated amenity names or IDs (e.g. `?amenities=Wifi,Pool`)
+- `check_in`, `check_out`: Date-range availability filter
+- `sort_by`: `price_asc`, `price_desc`, `rating`, `newest`
+- `page`: Page number (1-indexed, default `1`)
+- `limit`: Items per page (default `12`, max `100`)
+
+---
+
+### 2. Users
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/users/{id}` | Retrieve profile for a specific user |
+| `GET` | `/api/users` | List all users (convenient for persona switching in UI) |
+
+---
+
+### 3. Favorites / Wishlist
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/favorites/{user_id}` | Retrieve all favorited listings saved by the user |
+| `POST` | `/api/favorites` | Add listing to user's wishlist (`{ user_id, listing_id }`) |
+| `DELETE` | `/api/favorites/{user_id}/{listing_id}` | Remove listing from user's wishlist |
+
+---
+
+### 4. Bookings & Reservations
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/bookings` | Create stay reservation with server-side pricing & overlap checks |
+| `GET` | `/api/bookings/user/{user_id}` | Retrieve all bookings made by a guest ("My Trips") |
+| `GET` | `/api/bookings/listing/{listing_id}` | Retrieve all reservations on a property |
+
+#### Strict Server-Side Booking Validation Rules:
+1. **Past Date Prevention**: Rejects check-in dates in the past (`check_in < today` &rarr; `400 Bad Request`).
+2. **Date Ordering**: Enforces `check_out > check_in` (`400 Bad Request`).
+3. **Capacity Check**: Rejects requests where `guests > listing.max_guests` (`400 Bad Request`).
+4. **Collision Detection**: Prevents overlapping bookings (`409 Conflict`).
+5. **Host Self-Booking Prevention**: Hosts cannot book their own listings (`400 Bad Request`).
+6. **Authoritative Pricing**: Calculates `nights`, `nightly_total`, `cleaning_fee`, `service_fee` (14%), and `total_price` strictly server-side. Client-provided prices are ignored.
+
+---
+
+### 5. Host Management (CRUD)
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/host/listings` | Create a new property listing as a host |
+| `GET` | `/api/host/{host_id}/listings` | List all properties owned by host |
+| `GET` | `/api/host/listings/{id}` | Get host-view listing details |
+| `PUT` | `/api/host/listings/{id}` | Update listing details (validates host ownership) |
+| `DELETE` | `/api/host/listings/{id}` | Delete listing (validates host ownership) |
+| `GET` | `/api/host/{host_id}/bookings` | List all reservations across host's listings |
+
+> **Ownership Validation**: For `PUT` and `DELETE`, host ownership is enforced via query parameter `?host_id=<id>` or header `X-Host-Id`. Unauthorized attempts return `403 Forbidden`.
+
+---
+
+### 6. Amenities & System
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/amenities` | Full list of amenities with icons for filter row and host forms |
+| `GET` | `/api/health` | Health check endpoint (`{"status": "ok", "service": "airbnb-backend"}`) |
+
+---
+
+## Testing & Verification
+
+Run the automated integration test suite covering all 30 REST endpoints and validation constraints:
+
+```bash
+cd backend
+python test_api.py
 ```
 
 ---
