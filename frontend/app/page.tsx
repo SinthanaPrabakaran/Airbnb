@@ -1,285 +1,424 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import { HealthResponse } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
-import { useToast } from "@/components/ui/toast";
 import {
-  Server,
-  Activity,
-  Layers,
-  CheckCircle,
-  AlertTriangle,
-  RefreshCw,
-  Bell,
-  Code,
-  Globe,
-} from "lucide-react";
+  Amenity,
+  ListingFilterParams,
+  ListingSummary,
+  PaginatedListingsResponse,
+  User,
+} from "@/types";
+import { Header } from "@/components/Header";
+import { SearchBar } from "@/components/SearchBar";
+import { CategoryNav } from "@/components/CategoryNav";
+import { ListingGrid } from "@/components/ListingGrid";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { EmptyState } from "@/components/EmptyState";
+import { Pagination } from "@/components/Pagination";
+import { FilterModal, FilterState } from "@/components/FilterModal";
+import { WishlistDrawer } from "@/components/WishlistDrawer";
+import { ListingDetailModal } from "@/components/ListingDetailModal";
+import { MobileNav } from "@/components/MobileNav";
+import { useToast } from "@/components/ui/toast";
+import { getCurrentUserId, setCurrentUserId } from "@/lib/current-user";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
-export default function HomePage() {
-  const [healthData, setHealthData] = useState<HealthResponse | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastChecked, setLastChecked] = useState<string>("");
-  const [sampleInput, setSampleInput] = useState<string>("");
+export default function ExplorePage() {
+  const router = useRouter();
   const { showToast } = useToast();
 
-  const checkBackendHealth = async () => {
-    setIsLoading(true);
-    setError(null);
+  // 1. Data States
+  const [listings, setListings] = useState<ListingSummary[]>([]);
+  const [totalListings, setTotalListings] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(12);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // 2. User & Persona States
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [favoritesList, setFavoritesList] = useState<ListingSummary[]>([]);
+  const [favoritesSet, setFavoritesSet] = useState<Set<number>>(new Set());
+
+  // 3. Modals & Drawer States
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
+  const [selectedListingDetail, setSelectedListingDetail] = useState<ListingSummary | null>(null);
+  const [amenitiesCatalog, setAmenitiesCatalog] = useState<Amenity[]>([]);
+
+  // 4. Search & Filter Parameters
+  const [searchLocation, setSearchLocation] = useState("");
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [guests, setGuests] = useState(1);
+  const [activeCategory, setActiveCategory] = useState("all");
+
+  const [filters, setFilters] = useState<FilterState>({
+    minPrice: undefined,
+    maxPrice: undefined,
+    propertyType: undefined,
+    guests: undefined,
+    bedrooms: undefined,
+    beds: undefined,
+    bathrooms: undefined,
+    selectedAmenities: [],
+    sortBy: undefined,
+  });
+
+  // Load initial users and amenities
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([api.users.getAll(), api.amenities.getAll()])
+      .then(([userData, amenitiesData]) => {
+        if (!isMounted) return;
+        setUsers(userData);
+        if (userData.length > 0) {
+          const savedId = getCurrentUserId();
+          const activeUser =
+            userData.find((u) => u.id === savedId) ||
+            userData.find((u) => u.role === "guest") ||
+            userData[0];
+          setCurrentUser(activeUser);
+          setCurrentUserId(activeUser.id);
+        }
+        setAmenitiesCatalog(amenitiesData);
+      })
+      .catch((err) => {
+        console.error("Failed to load initial metadata", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Fetch user favorites when currentUser changes
+  const fetchFavorites = useCallback(async (userId: number) => {
     try {
-      const data = await api.health.check();
-      setHealthData(data);
-      setLastChecked(new Date().toLocaleTimeString());
-      showToast("Backend connection verified successfully!", "success");
+      const favs = await api.favorites.getByUser(userId);
+      setFavoritesList(favs);
+      setFavoritesSet(new Set(favs.map((f) => f.id)));
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Failed to connect to backend";
-      setError(msg);
-      showToast(`Connection failed: ${msg}`, "error");
-    } finally {
-      setIsLoading(false);
+      console.error("Failed to load favorites", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (currentUser?.id) {
+      Promise.resolve().then(() => {
+        if (isMounted) fetchFavorites(currentUser.id);
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id, fetchFavorites]);
+
+  // Main Listing Query Builder
+  const fetchListings = useCallback(
+    async (pageToFetch = 1) => {
+      setIsLoading(true);
+      setApiError(null);
+
+      const params: ListingFilterParams = {
+        page: pageToFetch,
+        limit: pageSize,
+      };
+
+      if (searchLocation.trim()) params.location = searchLocation.trim();
+      if (checkIn) params.check_in = checkIn;
+      if (checkOut) params.check_out = checkOut;
+      if (guests > 1) params.guests = guests;
+
+      if (filters.minPrice !== undefined) params.min_price = filters.minPrice;
+      if (filters.maxPrice !== undefined) params.max_price = filters.maxPrice;
+      if (filters.propertyType) params.property_type = filters.propertyType;
+      if (filters.guests) params.guests = filters.guests;
+      if (filters.bedrooms) params.bedrooms = filters.bedrooms;
+      if (filters.beds) params.beds = filters.beds;
+      if (filters.bathrooms) params.bathrooms = filters.bathrooms;
+      if (filters.selectedAmenities.length > 0) {
+        params.amenities = filters.selectedAmenities.join(",");
+      }
+      if (filters.sortBy) params.sort_by = filters.sortBy;
+
+      try {
+        const response: PaginatedListingsResponse = await api.listings.getAll(params);
+        setListings(response.items);
+        setTotalListings(response.total);
+        setTotalPages(response.total_pages);
+        setCurrentPage(response.page);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to load listings from server";
+        setApiError(message);
+        showToast(message, "error");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [searchLocation, checkIn, checkOut, guests, filters, pageSize, showToast]
+  );
+
+  // Trigger search on filter / parameter updates
+  useEffect(() => {
+    let isMounted = true;
+    Promise.resolve().then(() => {
+      if (isMounted) fetchListings(1);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchListings]);
+
+  // Toggle Favorite Handler
+  const handleToggleFavorite = async (listingId: number) => {
+    if (!currentUser) {
+      showToast("Please select a user profile first", "info");
+      return;
+    }
+
+    const isFav = favoritesSet.has(listingId);
+    try {
+      if (isFav) {
+        await api.favorites.remove(currentUser.id, listingId);
+        setFavoritesSet((prev) => {
+          const next = new Set(prev);
+          next.delete(listingId);
+          return next;
+        });
+        setFavoritesList((prev) => prev.filter((f) => f.id !== listingId));
+        showToast("Removed from wishlist", "info");
+      } else {
+        await api.favorites.add(currentUser.id, listingId);
+        setFavoritesSet((prev) => new Set(prev).add(listingId));
+        const matched = listings.find((l) => l.id === listingId);
+        if (matched) {
+          setFavoritesList((prev) => [matched, ...prev]);
+        }
+        showToast("Saved to wishlist!", "success");
+      }
+    } catch {
+      showToast("Failed to update wishlist", "error");
     }
   };
 
-  useEffect(() => {
-    checkBackendHealth();
-  }, []);
+  // Category change handler
+  const handleSelectCategory = (categoryId: string, propertyType?: string) => {
+    setActiveCategory(categoryId);
+    setFilters((prev) => ({
+      ...prev,
+      propertyType: propertyType,
+    }));
+  };
+
+  // Clear all filters handler
+  const handleClearAll = () => {
+    setSearchLocation("");
+    setCheckIn("");
+    setCheckOut("");
+    setGuests(1);
+    setActiveCategory("all");
+    setFilters({
+      minPrice: undefined,
+      maxPrice: undefined,
+      propertyType: undefined,
+      guests: undefined,
+      bedrooms: undefined,
+      beds: undefined,
+      bathrooms: undefined,
+      selectedAmenities: [],
+      sortBy: undefined,
+    });
+    showToast("Filters reset to default", "info");
+  };
+
+  // Compute active filter badge count
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) count += 1;
+    if (filters.propertyType) count += 1;
+    if (filters.guests) count += 1;
+    if (filters.bedrooms) count += 1;
+    if (filters.beds) count += 1;
+    if (filters.bathrooms) count += 1;
+    if (filters.selectedAmenities.length > 0) count += filters.selectedAmenities.length;
+    if (filters.sortBy) count += 1;
+    return count;
+  }, [filters]);
+
+  // Dynamic search summary text for mobile pill
+  const searchSummary = useMemo(() => {
+    const parts = [];
+    if (searchLocation) parts.push(searchLocation);
+    else parts.push("Anywhere");
+
+    if (checkIn && checkOut) parts.push(`${checkIn.slice(5)} to ${checkOut.slice(5)}`);
+    else parts.push("Any week");
+
+    if (guests > 1) parts.push(`${guests} guests`);
+    else parts.push("Add guests");
+
+    return parts.join(" · ");
+  }, [searchLocation, checkIn, checkOut, guests]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 p-6 md:p-12">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-slate-200/80 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center text-white shadow-md shadow-rose-200">
-              <span className="font-black text-xl tracking-tighter">ab</span>
+    <div className="min-h-screen bg-white text-neutral-900 flex flex-col antialiased">
+      {/* 1. Header with Airbnb logo, search summary, persona switcher & wishlist */}
+      <Header
+        currentUser={currentUser}
+        users={users}
+        onSelectUser={(u) => {
+          setCurrentUser(u);
+          setCurrentUserId(u.id);
+          showToast(`Switched active persona to ${u.name}`, "info");
+        }}
+        favoritesCount={favoritesSet.size}
+        onOpenFavorites={() => setIsWishlistDrawerOpen(true)}
+        onOpenFilters={() => setIsFilterModalOpen(true)}
+        filterCount={activeFilterCount}
+        onSearchClick={() => {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        searchSummary={searchSummary}
+      />
+
+      {/* 2. Segmented Search Bar (Desktop / Tablet prominent section) */}
+      <section className="hidden md:block py-6 px-4 bg-white border-b border-neutral-100">
+        <SearchBar
+          location={searchLocation}
+          onLocationChange={setSearchLocation}
+          checkIn={checkIn}
+          onCheckInChange={setCheckIn}
+          checkOut={checkOut}
+          onCheckOutChange={setCheckOut}
+          guests={guests}
+          onGuestsChange={setGuests}
+          onSearch={() => fetchListings(1)}
+          onClear={handleClearAll}
+        />
+      </section>
+
+      {/* 3. Category Row Carousel */}
+      <CategoryNav
+        activeCategory={activeCategory}
+        onSelectCategory={handleSelectCategory}
+        onOpenFilters={() => setIsFilterModalOpen(true)}
+        filterCount={activeFilterCount}
+      />
+
+      {/* 4. Main Marketplace Listing Content */}
+      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {/* API Error State */}
+        {apiError && (
+          <div className="mb-8 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-800">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-rose-600" />
+              <div>
+                <p className="text-sm font-bold">Failed to connect to backend</p>
+                <p className="text-xs text-rose-600">{apiError}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                Airbnb Fullstack Marketplace
-              </h1>
-              <p className="text-sm text-slate-500">
-                Project Foundation & Health Verification
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                healthData
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : error
-                  ? "bg-rose-50 text-rose-700 border border-rose-200"
-                  : "bg-amber-50 text-amber-700 border border-amber-200"
-              }`}
+            <button
+              onClick={() => fetchListings(currentPage)}
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-rose-700 border border-rose-200 shadow-xs hover:bg-rose-50"
             >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  healthData
-                    ? "bg-emerald-500 animate-pulse"
-                    : error
-                    ? "bg-rose-500"
-                    : "bg-amber-500 animate-pulse"
-                }`}
-              />
-              {healthData ? "API Connected" : error ? "API Offline" : "Connecting..."}
-            </span>
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Retry</span>
+            </button>
           </div>
-        </header>
+        )}
 
-        {/* Section 1: Backend Communication Proof */}
-        <section>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Server className="w-5 h-5 text-rose-500" />
-                  Backend Health Check (GET /api/health)
-                </CardTitle>
-                <CardDescription>
-                  Verifies full-stack communication between Next.js (port 3000) and FastAPI (port 8000).
-                </CardDescription>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={checkBackendHealth}
-                isLoading={isLoading}
-              >
-                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                Ping API
-              </Button>
-            </CardHeader>
+        {/* Loading State Skeleton */}
+        {isLoading ? (
+          <LoadingSkeleton count={pageSize} />
+        ) : listings.length === 0 ? (
+          /* Empty State */
+          <EmptyState onReset={handleClearAll} />
+        ) : (
+          /* 5. Photo-forward Responsive Listing Grid */
+          <>
+            <ListingGrid
+              listings={listings}
+              favoritesSet={favoritesSet}
+              onToggleFavorite={handleToggleFavorite}
+              onSelectListing={(listing) => router.push(`/listings/${listing.id}`)}
+            />
 
-            <div className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-sm overflow-x-auto">
-              {isLoading && !healthData ? (
-                <div className="flex items-center gap-3 py-2 text-slate-400">
-                  <Spinner size="sm" />
-                  <span>Requesting /api/health from FastAPI backend...</span>
-                </div>
-              ) : error ? (
-                <div className="flex items-start gap-3 py-2 text-rose-400">
-                  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold">Connection Error:</p>
-                    <p className="text-xs text-rose-300 mt-1">{error}</p>
-                    <p className="text-xs text-slate-400 mt-2">
-                      Make sure the backend is running at{" "}
-                      <code>http://localhost:8000</code>.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-800">
-                    <span>Status Code: 200 OK</span>
-                    {lastChecked && <span>Last checked: {lastChecked}</span>}
-                  </div>
-                  <pre className="text-emerald-400 text-xs">
-                    {JSON.stringify(healthData, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </Card>
-        </section>
+            {/* 6. Pagination Navigation */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalListings}
+              limit={pageSize}
+              onPageChange={(page) => {
+                fetchListings(page);
+                window.scrollTo({ top: 120, behavior: "smooth" });
+              }}
+            />
+          </>
+        )}
+      </main>
 
-        {/* Section 2: Architecture Highlights */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-5">
-            <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
-              <Globe className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-slate-900 text-sm">Frontend</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Next.js 16 App Router, TypeScript, Tailwind CSS, Centralized API Client.
-            </p>
-          </Card>
+      {/* 7. Comprehensive Filter Modal */}
+      <FilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={(newFilters) => {
+          setFilters(newFilters);
+          showToast("Filters applied", "info");
+        }}
+        onReset={handleClearAll}
+        initialFilters={filters}
+        amenitiesList={amenitiesCatalog}
+        totalMatchesCount={totalListings}
+      />
 
-          <Card className="p-5">
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
-              <Server className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-slate-900 text-sm">Backend</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Python FastAPI, SQLAlchemy 2.0, SQLite Database, Pydantic v2 schemas.
-            </p>
-          </Card>
+      {/* 8. Slide-over Wishlist Drawer */}
+      <WishlistDrawer
+        isOpen={isWishlistDrawerOpen}
+        onClose={() => setIsWishlistDrawerOpen(false)}
+        favorites={favoritesList}
+        onRemoveFavorite={handleToggleFavorite}
+        onSelectListing={(l) => {
+          setSelectedListingDetail(l);
+        }}
+        userName={currentUser?.name || "Guest"}
+      />
 
-          <Card className="p-5">
-            <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-3">
-              <Layers className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-slate-900 text-sm">Architecture</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Strict separation: Routers ➔ Services ➔ Schemas / Models. Centralized error handling.
-            </p>
-          </Card>
-        </section>
+      {/* 9. Listing Detail Quick Modal */}
+      <ListingDetailModal
+        listingSummary={selectedListingDetail}
+        onClose={() => setSelectedListingDetail(null)}
+        isFavorited={selectedListingDetail ? favoritesSet.has(selectedListingDetail.id) : false}
+        onToggleFavorite={handleToggleFavorite}
+      />
 
-        {/* Section 3: UI Primitives & Foundation Demo */}
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Code className="w-5 h-5 text-slate-700" />
-                Reusable UI Primitives & Notification Foundation
-              </CardTitle>
-              <CardDescription>
-                Test common buttons, inputs, loading states, and toasts.
-              </CardDescription>
-            </CardHeader>
+      {/* 10. Minimalist Marketplace Footer */}
+      <footer className="border-t border-neutral-200 bg-neutral-50/80 py-8 text-neutral-500 text-xs mt-auto">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <span>© 2026 staybnb, Inc. All rights reserved.</span>
+            <span className="hover:underline cursor-pointer">Privacy</span>
+            <span className="hover:underline cursor-pointer">Terms</span>
+            <span className="hover:underline cursor-pointer">Sitemap</span>
+          </div>
+          <div className="flex items-center gap-4 font-semibold text-neutral-800">
+            <span>English (IN)</span>
+            <span>₹ INR</span>
+          </div>
+        </div>
+      </footer>
 
-            <div className="space-y-6">
-              {/* Buttons */}
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                  Buttons
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="primary" size="sm">
-                    Primary Button
-                  </Button>
-                  <Button variant="secondary" size="sm">
-                    Secondary
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Outline
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    Ghost
-                  </Button>
-                  <Button variant="danger" size="sm">
-                    Danger
-                  </Button>
-                  <Button variant="primary" size="sm" isLoading>
-                    Loading
-                  </Button>
-                </div>
-              </div>
-
-              {/* Toast Triggers */}
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                  Toast Notifications
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      showToast("Action completed successfully!", "success")
-                    }
-                  >
-                    <CheckCircle className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
-                    Success Toast
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      showToast("Something went wrong with the request.", "error")
-                    }
-                  >
-                    <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-rose-500" />
-                    Error Toast
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      showToast("Here is a quick information update.", "info")
-                    }
-                  >
-                    <Bell className="w-3.5 h-3.5 mr-1.5 text-sky-500" />
-                    Info Toast
-                  </Button>
-                </div>
-              </div>
-
-              {/* Input Primitive */}
-              <div className="max-w-md">
-                <Input
-                  label="Sample Input Primitive"
-                  placeholder="Type anything to test input binding..."
-                  value={sampleInput}
-                  onChange={(e) => setSampleInput(e.target.value)}
-                />
-                {sampleInput && (
-                  <p className="text-xs text-slate-500 mt-1.5">
-                    Value: <span className="font-semibold">{sampleInput}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-          </Card>
-        </section>
-      </div>
-    </main>
+      {/* 11. Mobile Sticky Bottom Navigation */}
+      <MobileNav favoritesCount={favoritesSet.size} />
+    </div>
   );
 }
