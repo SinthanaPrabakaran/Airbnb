@@ -83,11 +83,21 @@ export default function MyTripsPage() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     if (currentUser?.id) {
       setCurrentUserId(currentUser.id);
-      fetchTrips(currentUser.id);
-      api.favorites.getByUser(currentUser.id).then((favs) => setFavoritesList(favs));
+      Promise.resolve().then(() => {
+        if (isMounted) {
+          fetchTrips(currentUser.id);
+          api.favorites.getByUser(currentUser.id).then((favs) => {
+            if (isMounted) setFavoritesList(favs);
+          });
+        }
+      });
     }
+    return () => {
+      isMounted = false;
+    };
   }, [currentUser, fetchTrips]);
 
   // Handle persona switch

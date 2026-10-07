@@ -72,10 +72,16 @@ export default function WishlistsPage() {
   );
 
   useEffect(() => {
+    let isMounted = true;
     if (currentUser?.id) {
       setCurrentUserId(currentUser.id);
-      fetchWishlists(currentUser.id);
+      Promise.resolve().then(() => {
+        if (isMounted) fetchWishlists(currentUser.id);
+      });
     }
+    return () => {
+      isMounted = false;
+    };
   }, [currentUser, fetchWishlists]);
 
   // Handle persona switch

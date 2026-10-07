@@ -94,10 +94,16 @@ export default function ListingDetailPage({ params }: PageProps) {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     if (currentUser?.id) {
-      fetchFavorites(currentUser.id);
+      Promise.resolve().then(() => {
+        if (isMounted) fetchFavorites(currentUser.id);
+      });
     }
-  }, [currentUser, fetchFavorites]);
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id, fetchFavorites]);
 
   // Load Listing Details & Availability
   useEffect(() => {

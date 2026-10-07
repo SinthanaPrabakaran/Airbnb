@@ -109,10 +109,16 @@ export default function ExplorePage() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     if (currentUser?.id) {
-      fetchFavorites(currentUser.id);
+      Promise.resolve().then(() => {
+        if (isMounted) fetchFavorites(currentUser.id);
+      });
     }
-  }, [currentUser, fetchFavorites]);
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id, fetchFavorites]);
 
   // Main Listing Query Builder
   const fetchListings = useCallback(
@@ -162,7 +168,13 @@ export default function ExplorePage() {
 
   // Trigger search on filter / parameter updates
   useEffect(() => {
-    fetchListings(1);
+    let isMounted = true;
+    Promise.resolve().then(() => {
+      if (isMounted) fetchListings(1);
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [fetchListings]);
 
   // Toggle Favorite Handler
@@ -192,7 +204,7 @@ export default function ExplorePage() {
         }
         showToast("Saved to wishlist!", "success");
       }
-    } catch (err) {
+    } catch {
       showToast("Failed to update wishlist", "error");
     }
   };
