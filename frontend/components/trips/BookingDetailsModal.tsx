@@ -198,6 +198,7 @@ export function BookingDetailsModal({
                       alt={booking.host_name}
                       fill
                       className="object-cover"
+                      sizes="32px"
                     />
                   </div>
                 ) : null}

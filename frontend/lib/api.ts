@@ -5,9 +5,11 @@ import {
   BookingDetail,
   Favorite,
   HealthResponse,
+  ListingCreatePayload,
   ListingDetail,
   ListingFilterParams,
   ListingSummary,
+  ListingUpdatePayload,
   PaginatedListingsResponse,
   User,
 } from "@/types";
@@ -76,5 +78,27 @@ export const api = {
 
     getUserTrips: (userId: number) =>
       apiClient.get<BookingDetail[]>(`/api/bookings/user/${userId}`),
+  },
+
+  host: {
+    createListing: (data: ListingCreatePayload) =>
+      apiClient.post<ListingDetail>("/api/host/listings", data),
+
+    getListings: (hostId: number) =>
+      apiClient.get<ListingSummary[]>(`/api/host/${hostId}/listings`),
+
+    getListingDetail: (id: number) =>
+      apiClient.get<ListingDetail>(`/api/host/listings/${id}`),
+
+    updateListing: (id: number, data: ListingUpdatePayload, hostId: number) =>
+      apiClient.put<ListingDetail>(`/api/host/listings/${id}?host_id=${hostId}`, data),
+
+    deleteListing: (id: number, hostId: number) =>
+      apiClient.delete<{ success: boolean; message: string }>(
+        `/api/host/listings/${id}?host_id=${hostId}`
+      ),
+
+    getBookings: (hostId: number) =>
+      apiClient.get<BookingDetail[]>(`/api/host/${hostId}/bookings`),
   },
 };

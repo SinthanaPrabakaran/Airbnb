@@ -192,6 +192,7 @@ export default function ConfirmationPage({ params }: ConfirmationPageProps) {
                         alt={booking.host_name}
                         fill
                         className="object-cover"
+                        sizes="24px"
                       />
                     </div>
                   ) : null}

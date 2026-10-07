@@ -159,3 +159,26 @@ export interface BookingCreatePayload {
   check_out: string;
   guests: number;
 }
+
+export interface ListingCreatePayload {
+  title: string;
+  description: string;
+  property_type: string;
+  location: string;
+  city: string;
+  country: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  price_per_night: number;
+  cleaning_fee: number;
+  service_fee: number;
+  max_guests: number;
+  bedrooms: number;
+  beds: number;
+  bathrooms: number;
+  host_id: number;
+  amenity_ids: number[];
+  image_urls: string[];
+}
+
+export interface ListingUpdatePayload extends Partial<ListingCreatePayload> {}

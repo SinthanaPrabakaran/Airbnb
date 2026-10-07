@@ -94,6 +94,14 @@ export function Header({
 
           {/* 3. Right Navigation & User Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Host Dashboard Link */}
+            <Link
+              href="/host"
+              className="hidden md:inline-flex items-center rounded-full px-3.5 py-2 text-xs font-bold text-neutral-800 transition hover:bg-neutral-100"
+            >
+              Airbnb your home
+            </Link>
+
             {/* Wishlist Link with Badge */}
             <button
               onClick={onOpenFavorites}
@@ -213,6 +221,14 @@ export function Header({
 
                   {/* Quick Action Links */}
                   <div className="px-2 pt-1.5 space-y-0.5">
+                    <Link
+                      href="/host"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-neutral-800 hover:bg-neutral-50"
+                    >
+                      <Home className="h-4 w-4 text-[#FF385C]" />
+                      <span>Host Dashboard</span>
+                    </Link>
                     <Link
                       href="/trips"
                       onClick={() => setIsMenuOpen(false)}
