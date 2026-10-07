@@ -402,6 +402,29 @@ The backend exposes a RESTful API with automated OpenAPI / Swagger documentation
 - Empty state with invitation to explore when no trips are booked.
 - Persona synchronization: switching profiles in the global header reloads the trips for that specific guest.
 
+### 6. Host Experience & Property Management Suite
+- **Host Dashboard (`/host`)**:
+  - Operational KPIs: Total published listings, active bookings count, upcoming stays, and estimated net host revenue.
+  - Recent properties and incoming traveler reservations preview.
+  - Dedicated `HostHeader` with navigation tabs, host mode badge, "+ Create Listing" trigger, and persona switcher.
+- **Host Listings Management (`/host/listings`)**:
+  - Grid of all properties owned by the current host.
+  - Fast search by title, city, or property category, plus price/alphabetical sorting.
+  - Quick action controls to edit or permanently delete listings.
+  - **ConfirmDialog**: Confirmation modal before deletion to protect against accidental data loss.
+- **Create Listing Flow (`/host/listings/new`)**:
+  - Reusable `ListingForm` with 6 structured sections: Property overview, location & coordinates, pricing & fees, capacity & sleeping arrangements, interactive multi-select amenities catalog, and photos.
+  - Real-time photo preview gallery with delete buttons and quick 1-click sample presets.
+  - Immediate database persistence via `POST /api/host/listings` with immediate visibility on the public Explore page.
+- **Edit Listing Flow (`/host/listings/[id]/edit`)**:
+  - Pre-populates all existing property attributes, amenities, and photo URLs.
+  - Enforces backend host ownership verification (`PUT /api/host/listings/{id}?host_id={host_id}`).
+  - Instant live reflection on `/listings/[id]`.
+- **Host Reservations (`/host/bookings`)**:
+  - Comprehensive `BookingTable` listing all guest bookings across the host's portfolio.
+  - Displays guest details, stay dates, occupancy, total payouts, and live status badges.
+  - Filter by All, Confirmed, and Cancelled bookings.
+
 ---
 
 ## Testing & Verification
