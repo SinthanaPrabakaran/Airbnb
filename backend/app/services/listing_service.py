@@ -46,6 +46,9 @@ def get_listings(
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     guests: Optional[int] = None,
+    bedrooms: Optional[int] = None,
+    beds: Optional[int] = None,
+    bathrooms: Optional[float] = None,
     amenities: Optional[str] = None,
     check_in: Optional[date] = None,
     check_out: Optional[date] = None,
@@ -91,6 +94,12 @@ def get_listings(
         stmt = stmt.where(Listing.price_per_night <= max_price)
     if guests is not None:
         stmt = stmt.where(Listing.max_guests >= guests)
+    if bedrooms is not None:
+        stmt = stmt.where(Listing.bedrooms >= bedrooms)
+    if beds is not None:
+        stmt = stmt.where(Listing.beds >= beds)
+    if bathrooms is not None:
+        stmt = stmt.where(Listing.bathrooms >= bathrooms)
 
     # Filter by amenities (comma-separated list of names or IDs, e.g. "Wifi,Pool" or "1,2")
     if amenities and amenities.strip():
