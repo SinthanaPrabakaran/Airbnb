@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Star, ShieldAlert, Sparkles } from "lucide-react";
+import { Star, ShieldCheck, Sparkles, CheckCircle, Zap } from "lucide-react";
 import { ListingDetail } from "@/types";
 import { DateRangePicker } from "./DateRangePicker";
 import { GuestSelector } from "./GuestSelector";
@@ -46,11 +46,11 @@ export function BookingCard({
   return (
     <>
       {/* DESKTOP STICKY BOOKING CARD */}
-      <aside className="hidden lg:block sticky top-28 z-20 rounded-3xl border border-neutral-200 bg-white p-6 shadow-xl space-y-5">
+      <aside className="hidden lg:block sticky top-28 z-20 rounded-3xl border border-neutral-200/90 bg-white p-6 shadow-xl space-y-5">
         {/* Price & Rating Header */}
         <div className="flex items-baseline justify-between">
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black text-neutral-900">
+            <span className="text-2xl font-black text-neutral-900 tracking-tight">
               ₹{Math.round(listing.price_per_night).toLocaleString()}
             </span>
             <span className="text-sm font-normal text-neutral-500">night</span>
@@ -119,6 +119,18 @@ export function BookingCard({
             nights={nights}
           />
         )}
+
+        {/* Trust & Guarantee Highlights */}
+        <div className="space-y-2 pt-2 border-t border-neutral-100">
+          <div className="flex items-center gap-2 text-xs text-neutral-600">
+            <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>Free cancellation up to 48 hours before check-in</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-neutral-600">
+            <Zap className="h-4 w-4 text-[#FF385C] shrink-0" />
+            <span>Instant confirmation — no host approval delay</span>
+          </div>
+        </div>
 
         {/* Rare Find / High Demand Note */}
         <div className="flex items-start gap-3 rounded-2xl bg-neutral-50 p-3.5 border border-neutral-100">

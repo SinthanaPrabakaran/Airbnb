@@ -25,6 +25,7 @@ import { BookingDetail, User } from "@/types";
 import { Header } from "@/components/Header";
 import { WishlistDrawer } from "@/components/WishlistDrawer";
 import { BookingDetailsModal } from "@/components/trips/BookingDetailsModal";
+import { MobileNav } from "@/components/MobileNav";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { getCurrentUserId, setCurrentUserId } from "@/lib/current-user";
@@ -367,6 +368,9 @@ export default function MyTripsPage() {
         }}
         userName={currentUser?.name || "Guest"}
       />
+
+      {/* Mobile Bottom Navigation */}
+      <MobileNav favoritesCount={favoritesList.length} />
     </div>
   );
 }

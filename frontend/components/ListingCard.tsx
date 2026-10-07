@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Heart, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import { Heart, Star, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { ListingSummary } from "@/types";
 
 interface ListingCardProps {
@@ -18,12 +19,17 @@ export function ListingCard({
   onClick,
 }: ListingCardProps) {
   // Image carousel state (uses listing.images if available, else falls back to cover_image)
-  const images = listing.images && listing.images.length > 0
-    ? listing.images.map((i) => i.image_url)
-    : [listing.cover_image || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"];
+  const images =
+    listing.images && listing.images.length > 0
+      ? listing.images.map((i) => i.image_url)
+      : [
+          listing.cover_image ||
+            "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+        ];
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -40,42 +46,62 @@ export function ListingCard({
     onToggleFavorite(listing.id);
   };
 
+  const isGuestFavorite =
+    (listing.average_rating || 0) >= 4.85 && listing.review_count >= 3;
+
+  const currentImgSrc =
+    imageError || !images[currentImageIndex]
+      ? "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
+      : images[currentImageIndex];
+
   return (
     <article
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group flex flex-col cursor-pointer transition"
+      className="group flex flex-col cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-[#FF385C]/40 rounded-2xl p-1 -m-1"
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
           onClick?.();
         }
       }}
       aria-label={`${listing.title} in ${listing.city}, ${listing.country}`}
     >
       {/* 1. Photo Container with Carousel & Heart Button */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-neutral-100 shadow-xs transition-shadow duration-200 group-hover:shadow-md">
-        <img
-          src={images[currentImageIndex]}
+      <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-neutral-100 shadow-xs transition duration-300 group-hover:shadow-md">
+        <Image
+          src={currentImgSrc}
           alt={`${listing.title} photo ${currentImageIndex + 1}`}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-103"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-104"
+          onError={() => setImageError(true)}
+          unoptimized={!currentImgSrc.includes("unsplash.com")}
         />
+
+        {/* Guest Favourite Badge */}
+        {isGuestFavorite && (
+          <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-extrabold text-neutral-900 shadow-md backdrop-blur-xs">
+            <Sparkles className="h-3 w-3 text-[#FF385C]" />
+            <span>Guest favourite</span>
+          </div>
+        )}
 
         {/* Favorite Heart Button */}
         <button
           onClick={handleFavoriteClick}
           type="button"
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full transition-transform active:scale-75"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full transition-transform active:scale-75 focus:outline-none"
           aria-label={isFavorited ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart
             className={`h-6 w-6 transition-colors duration-200 ${
               isFavorited
-                ? "fill-[#FF385C] stroke-[#FF385C]"
-                : "fill-black/30 stroke-white stroke-[2] hover:scale-110"
+                ? "fill-[#FF385C] stroke-[#FF385C] scale-105"
+                : "fill-black/35 stroke-white stroke-[2] hover:scale-110"
             }`}
           />
         </button>
@@ -86,7 +112,7 @@ export function ListingCard({
             <button
               onClick={prevImage}
               type="button"
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-neutral-800 shadow-md backdrop-blur-sm transition hover:scale-108 hover:bg-white active:scale-90"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-neutral-800 shadow-md backdrop-blur-xs transition hover:scale-110 hover:bg-white active:scale-90"
               aria-label="Previous photo"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -94,7 +120,7 @@ export function ListingCard({
             <button
               onClick={nextImage}
               type="button"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-neutral-800 shadow-md backdrop-blur-sm transition hover:scale-108 hover:bg-white active:scale-90"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-neutral-800 shadow-md backdrop-blur-xs transition hover:scale-110 hover:bg-white active:scale-90"
               aria-label="Next photo"
             >
               <ChevronRight className="h-4 w-4" />
@@ -147,9 +173,10 @@ export function ListingCard({
         {/* Row 3: Property Type & Capacity */}
         <p className="text-xs text-neutral-500 font-normal">
           {listing.property_type} · Up to {listing.max_guests} guests
+          {listing.bedrooms ? ` · ${listing.bedrooms} bed` : ""}
         </p>
 
-        {/* Row 4: Nightly Pricing */}
+        {/* Row 4: Nightly Pricing in ₹ */}
         <div className="mt-1 flex items-baseline gap-1 text-sm">
           <span className="font-extrabold text-neutral-900">
             ₹{Math.round(listing.price_per_night).toLocaleString()}

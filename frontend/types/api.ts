@@ -116,6 +116,9 @@ export interface ListingFilterParams {
   max_price?: number;
   property_type?: string;
   guests?: number;
+  bedrooms?: number;
+  beds?: number;
+  bathrooms?: number;
   amenities?: string;
   check_in?: string;
   check_out?: string;

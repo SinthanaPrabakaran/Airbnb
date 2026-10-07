@@ -20,6 +20,7 @@ import { Pagination } from "@/components/Pagination";
 import { FilterModal, FilterState } from "@/components/FilterModal";
 import { WishlistDrawer } from "@/components/WishlistDrawer";
 import { ListingDetailModal } from "@/components/ListingDetailModal";
+import { MobileNav } from "@/components/MobileNav";
 import { useToast } from "@/components/ui/toast";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
@@ -61,6 +62,9 @@ export default function ExplorePage() {
     maxPrice: undefined,
     propertyType: undefined,
     guests: undefined,
+    bedrooms: undefined,
+    beds: undefined,
+    bathrooms: undefined,
     selectedAmenities: [],
     sortBy: undefined,
   });
@@ -125,6 +129,9 @@ export default function ExplorePage() {
       if (filters.maxPrice !== undefined) params.max_price = filters.maxPrice;
       if (filters.propertyType) params.property_type = filters.propertyType;
       if (filters.guests) params.guests = filters.guests;
+      if (filters.bedrooms) params.bedrooms = filters.bedrooms;
+      if (filters.beds) params.beds = filters.beds;
+      if (filters.bathrooms) params.bathrooms = filters.bathrooms;
       if (filters.selectedAmenities.length > 0) {
         params.amenities = filters.selectedAmenities.join(",");
       }
@@ -206,6 +213,9 @@ export default function ExplorePage() {
       maxPrice: undefined,
       propertyType: undefined,
       guests: undefined,
+      bedrooms: undefined,
+      beds: undefined,
+      bathrooms: undefined,
       selectedAmenities: [],
       sortBy: undefined,
     });
@@ -218,6 +228,9 @@ export default function ExplorePage() {
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) count += 1;
     if (filters.propertyType) count += 1;
     if (filters.guests) count += 1;
+    if (filters.bedrooms) count += 1;
+    if (filters.beds) count += 1;
+    if (filters.bathrooms) count += 1;
     if (filters.selectedAmenities.length > 0) count += filters.selectedAmenities.length;
     if (filters.sortBy) count += 1;
     return count;
@@ -380,11 +393,14 @@ export default function ExplorePage() {
             <span className="hover:underline cursor-pointer">Sitemap</span>
           </div>
           <div className="flex items-center gap-4 font-semibold text-neutral-800">
-            <span>English (US)</span>
-            <span>$ USD</span>
+            <span>English (IN)</span>
+            <span>₹ INR</span>
           </div>
         </div>
       </footer>
+
+      {/* 11. Mobile Sticky Bottom Navigation */}
+      <MobileNav favoritesCount={favoritesSet.size} />
     </div>
   );
 }
