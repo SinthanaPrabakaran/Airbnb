@@ -268,26 +268,21 @@ export function ListingDetailModal({
           <div>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-black text-neutral-900">
-                ${Math.round(listingSummary.price_per_night)}
+                ₹{Math.round(listingSummary.price_per_night).toLocaleString()}
               </span>
               <span className="text-xs text-neutral-500 font-normal">night</span>
             </div>
             <p className="text-[11px] text-neutral-400">
-              Total before taxes: ${Math.round(listingSummary.price_per_night)} + fees
+              Total before taxes: ₹{Math.round(listingSummary.price_per_night).toLocaleString()} + fees
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              alert(
-                `Booking workflow for "${listingSummary.title}" will open the booking flow in the next step!`
-              );
-            }}
-            type="button"
-            className="rounded-2xl bg-gradient-to-r from-[#E00B41] to-[#FF385C] px-8 py-3.5 text-sm font-bold text-white shadow-md shadow-[#FF385C]/30 transition hover:brightness-105 active:scale-95"
+          <a
+            href={`/listings/${listingSummary.id}`}
+            className="rounded-2xl bg-gradient-to-r from-[#E00B41] to-[#FF385C] px-8 py-3.5 text-sm font-bold text-white shadow-md shadow-[#FF385C]/30 transition hover:brightness-105 active:scale-95 text-center"
           >
-            Reserve stay
-          </button>
+            Check availability
+          </a>
         </div>
       </div>
     </div>

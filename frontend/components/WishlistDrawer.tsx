@@ -98,7 +98,7 @@ export function WishlistDrawer({
                           {item.city}, {item.country}
                         </h4>
                         <span className="text-xs font-semibold text-neutral-900 shrink-0">
-                          ${Math.round(item.price_per_night)}
+                          ₹{Math.round(item.price_per_night).toLocaleString()}
                           <span className="text-[10px] font-normal text-neutral-500">
                             /nt
                           </span>

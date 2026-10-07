@@ -152,7 +152,7 @@ export function ListingCard({
         {/* Row 4: Nightly Pricing */}
         <div className="mt-1 flex items-baseline gap-1 text-sm">
           <span className="font-extrabold text-neutral-900">
-            ${Math.round(listing.price_per_night)}
+            ₹{Math.round(listing.price_per_night).toLocaleString()}
           </span>
           <span className="text-xs font-normal text-neutral-600">night</span>
         </div>

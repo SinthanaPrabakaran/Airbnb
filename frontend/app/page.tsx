@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import {
   Amenity,
@@ -23,6 +24,7 @@ import { useToast } from "@/components/ui/toast";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 export default function ExplorePage() {
+  const router = useRouter();
   const { showToast } = useToast();
 
   // 1. Data States
@@ -316,7 +318,7 @@ export default function ExplorePage() {
               listings={listings}
               favoritesSet={favoritesSet}
               onToggleFavorite={handleToggleFavorite}
-              onSelectListing={(listing) => setSelectedListingDetail(listing)}
+              onSelectListing={(listing) => router.push(`/listings/${listing.id}`)}
             />
 
             {/* 6. Pagination Navigation */}
