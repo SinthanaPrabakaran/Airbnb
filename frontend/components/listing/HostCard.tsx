@@ -47,7 +47,7 @@ export function HostCard({ host, propertyType }: HostCardProps) {
               Hosted by {host.name}
             </h3>
             <p className="text-xs text-neutral-500 font-medium">
-              {isSuperhost ? "Superhost · " : ""}Hosting on staybnb for 3 years
+              {isSuperhost ? "Superhost · " : ""}Hosting on Staybnb for 3 years
             </p>
           </div>
         </div>

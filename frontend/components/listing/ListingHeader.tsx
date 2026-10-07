@@ -23,7 +23,7 @@ export function ListingHeader({
     const url = window.location.href;
     const shareData = {
       title: listing.title,
-      text: `Check out this stay on staybnb: ${listing.title} in ${listing.city}, ${listing.country}`,
+      text: `Check out this stay on Staybnb: ${listing.title} in ${listing.city}, ${listing.country}`,
       url: url,
     };
 

@@ -160,7 +160,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         <header className="border-b border-neutral-200 py-6 px-4 sm:px-8">
           <div className="mx-auto max-w-6xl flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl font-black tracking-tight text-[#FF385C]">staybnb</span>
+              <span className="text-xl font-black tracking-tight text-[#FF385C]">Staybnb</span>
             </Link>
           </div>
         </header>
@@ -178,7 +178,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
       <div className="min-h-screen bg-white">
         <header className="border-b border-neutral-200 py-6 px-4 sm:px-8">
           <div className="mx-auto max-w-6xl">
-            <Link href="/" className="text-xl font-black text-[#FF385C]">staybnb</Link>
+            <Link href="/" className="text-xl font-black text-[#FF385C]">Staybnb</Link>
           </div>
         </header>
         <main className="mx-auto max-w-md py-20 px-4 text-center space-y-4">
@@ -213,7 +213,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
               <ChevronLeft className="h-5 w-5 text-neutral-700" />
             </Link>
             <Link href="/" className="text-xl font-black tracking-tight text-[#FF385C]">
-              staybnb
+              Staybnb
             </Link>
           </div>
 
@@ -454,7 +454,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     </p>
                   </div>
                   <p className="text-[11px] leading-relaxed">
-                    By clicking the button below, you agree to the Host's House Rules, Ground Rules for Guests, and staybnb's Terms of Service.
+                    By clicking the button below, you agree to the Host's House Rules, Ground Rules for Guests, and Staybnb's Terms of Service.
                   </p>
                 </div>
 

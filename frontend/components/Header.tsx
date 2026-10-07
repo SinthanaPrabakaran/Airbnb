@@ -89,7 +89,7 @@ export function Header({
                 </svg>
               </div>
               <span className="hidden text-xl font-black tracking-tight text-[#FF385C] sm:inline-block">
-                staybnb
+                Staybnb
               </span>
             </Link>
 

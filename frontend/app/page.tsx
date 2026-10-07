@@ -405,7 +405,7 @@ export default function ExplorePage() {
       <footer className="border-t border-neutral-200 bg-neutral-50/80 py-8 text-neutral-500 text-xs mt-auto">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <span>© 2026 staybnb, Inc. All rights reserved.</span>
+            <span>© 2026 Staybnb, Inc. All rights reserved.</span>
             <span className="hover:underline cursor-pointer">Privacy</span>
             <span className="hover:underline cursor-pointer">Terms</span>
             <span className="hover:underline cursor-pointer">Sitemap</span>

@@ -101,7 +101,7 @@ export default function ConfirmationPage({ params }: ConfirmationPageProps) {
       <header className="border-b border-neutral-200 bg-white sticky top-0 z-30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
           <Link href="/" className="text-xl font-black tracking-tight text-[#FF385C]">
-            staybnb
+            Staybnb
           </Link>
 
           <div className="flex items-center gap-3">
