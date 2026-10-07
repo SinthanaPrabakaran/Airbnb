@@ -54,5 +54,7 @@ class BookingDetailResponse(BookingResponse):
     listing_country: Optional[str] = None
     cover_image: Optional[str] = None
     guest_name: Optional[str] = None
+    guest_email: Optional[str] = None
+    host_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

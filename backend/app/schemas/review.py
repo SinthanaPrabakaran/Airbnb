@@ -12,8 +12,8 @@ class ReviewBase(BaseModel):
 
 
 class ReviewCreate(ReviewBase):
-    listing_id: int
     guest_id: int
+    listing_id: Optional[int] = None
 
 
 class ReviewResponse(ReviewBase):

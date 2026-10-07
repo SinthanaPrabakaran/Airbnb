@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import date
 from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -6,22 +7,51 @@ from sqlalchemy.orm import Session, joinedload
 from app.database_utils import calculate_pricing, check_booking_overlap
 from app.models.booking import Booking
 from app.models.listing import Listing
+from app.models.user import User
 from app.schemas.booking import BookingCreate
 
 
 class BookingError(Exception):
-    pass
+    def __init__(self, message: str, status_code: int = 400):
+        super().__init__(message)
+        self.message = message
+        self.status_code = status_code
+
+
+class BookingNotFoundError(BookingError):
+    def __init__(self, message: str = "Booking not found"):
+        super().__init__(message, status_code=404)
+
+
+class BookingConflictError(BookingError):
+    def __init__(self, message: str = "The selected dates are already booked for this listing"):
+        super().__init__(message, status_code=409)
 
 
 def create_booking(db: Session, booking_in: BookingCreate) -> Booking:
-    """Create a new booking with date overlap and capacity validation."""
+    """Create a new booking with date validation, past checks, overlap checks, and capacity validation."""
+    today = date.today()
+    if booking_in.check_in < today:
+        raise BookingError("Cannot create a booking in the past", status_code=400)
+
+    if booking_in.check_out <= booking_in.check_in:
+        raise BookingError("check_out must be strictly after check_in", status_code=400)
+
     listing = db.get(Listing, booking_in.listing_id)
     if not listing:
-        raise BookingError(f"Listing with id {booking_in.listing_id} not found")
+        raise BookingNotFoundError(f"Listing with id {booking_in.listing_id} not found")
+
+    guest = db.get(User, booking_in.guest_id)
+    if not guest:
+        raise BookingError(f"User with id {booking_in.guest_id} not found", status_code=404)
+
+    if listing.host_id == booking_in.guest_id:
+        raise BookingError("Hosts cannot create bookings on their own listings", status_code=400)
 
     if booking_in.guests > listing.max_guests:
         raise BookingError(
-            f"Guests count ({booking_in.guests}) exceeds maximum allowed ({listing.max_guests})"
+            f"Guests count ({booking_in.guests}) exceeds maximum allowed ({listing.max_guests})",
+            status_code=400,
         )
 
     # Check for date overlap
@@ -31,8 +61,9 @@ def create_booking(db: Session, booking_in: BookingCreate) -> Booking:
         check_in=booking_in.check_in,
         check_out=booking_in.check_out,
     ):
-        raise BookingError("The selected dates are already booked for this listing")
+        raise BookingConflictError("The selected dates are already booked for this listing")
 
+    # Authoritative server-side pricing calculation (ignoring any client-provided price inputs)
     pricing = calculate_pricing(
         price_per_night=listing.price_per_night,
         cleaning_fee=listing.cleaning_fee,
@@ -67,9 +98,24 @@ def get_user_bookings(db: Session, guest_id: int) -> List[Booking]:
         select(Booking)
         .where(Booking.guest_id == guest_id)
         .options(
+            joinedload(Booking.guest),
             joinedload(Booking.listing).selectinload(Listing.images),
         )
         .order_by(Booking.check_in.desc())
+    )
+    return list(db.scalars(stmt).unique().all())
+
+
+def get_listing_bookings(db: Session, listing_id: int) -> List[Booking]:
+    """Retrieve all confirmed bookings for a specific listing."""
+    stmt = (
+        select(Booking)
+        .where(Booking.listing_id == listing_id)
+        .options(
+            joinedload(Booking.guest),
+            joinedload(Booking.listing),
+        )
+        .order_by(Booking.check_in.asc())
     )
     return list(db.scalars(stmt).unique().all())
 
@@ -82,7 +128,7 @@ def get_host_bookings(db: Session, host_id: int) -> List[Booking]:
         .where(Listing.host_id == host_id)
         .options(
             joinedload(Booking.guest),
-            joinedload(Booking.listing),
+            joinedload(Booking.listing).selectinload(Listing.images),
         )
         .order_by(Booking.check_in.desc())
     )
@@ -97,7 +143,7 @@ def cancel_booking(db: Session, booking_id: int, user_id: int) -> Optional[Booki
 
     listing = db.get(Listing, booking.listing_id)
     if booking.guest_id != user_id and (listing and listing.host_id != user_id):
-        raise BookingError("Unauthorized to cancel this booking")
+        raise BookingError("Unauthorized to cancel this booking", status_code=403)
 
     booking.status = "cancelled"
     db.commit()

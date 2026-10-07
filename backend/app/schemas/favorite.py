@@ -7,6 +7,7 @@ from app.schemas.listing import ListingSummaryResponse
 
 
 class FavoriteCreate(BaseModel):
+    user_id: int
     listing_id: int
 
 
