@@ -116,6 +116,141 @@ The frontend will be available at `http://localhost:3000`.
 
 ---
 
+---
+
+## Database Architecture & Schema
+
+The persistent storage layer uses **SQLite** with **SQLAlchemy 2.0 ORM** and enforces foreign key constraints (`PRAGMA foreign_keys = ON;`).
+
+```mermaid
+erDiagram
+    USERS ||--o{ LISTINGS : "hosts"
+    USERS ||--o{ BOOKINGS : "books"
+    USERS ||--o{ REVIEWS : "writes"
+    USERS ||--o{ FAVORITES : "saves"
+    LISTINGS ||--o{ LISTING_IMAGES : "has"
+    LISTINGS ||--o{ BOOKINGS : "receives"
+    LISTINGS ||--o{ REVIEWS : "receives"
+    LISTINGS ||--o{ FAVORITES : "saved_in"
+    LISTINGS }o--o{ AMENITIES : "listing_amenities"
+```
+
+### Relational Tables & Attributes
+
+1. **`users`**
+   - `id` (INTEGER, PK, Autoincrement)
+   - `name` (VARCHAR(100), NOT NULL)
+   - `email` (VARCHAR(255), UNIQUE, INDEX, NOT NULL)
+   - `avatar` (VARCHAR(500), NULLABLE)
+   - `role` (VARCHAR(20), NOT NULL, default `'guest'`: `'guest'`, `'host'`)
+   - `created_at` (DATETIME, DEFAULT `CURRENT_TIMESTAMP`)
+
+2. **`listings`**
+   - `id` (INTEGER, PK, Autoincrement)
+   - `host_id` (INTEGER, FK `users.id` ON DELETE CASCADE, INDEX)
+   - `title` (VARCHAR(255), NOT NULL)
+   - `description` (TEXT, NOT NULL)
+   - `property_type` (VARCHAR(50), INDEX, NOT NULL)
+   - `location` (VARCHAR(255), NOT NULL)
+   - `city` (VARCHAR(100), INDEX, NOT NULL)
+   - `country` (VARCHAR(100), INDEX, NOT NULL)
+   - `latitude` (FLOAT, NULLABLE)
+   - `longitude` (FLOAT, NULLABLE)
+   - `price_per_night` (FLOAT, NOT NULL)
+   - `cleaning_fee` (FLOAT, DEFAULT `0.0`)
+   - `service_fee` (FLOAT, DEFAULT `0.0`)
+   - `max_guests` (INTEGER, DEFAULT `1`)
+   - `bedrooms` (INTEGER, DEFAULT `1`)
+   - `beds` (INTEGER, DEFAULT `1`)
+   - `bathrooms` (FLOAT, DEFAULT `1.0`)
+   - `created_at` (DATETIME, DEFAULT `CURRENT_TIMESTAMP`)
+   - `updated_at` (DATETIME, DEFAULT `CURRENT_TIMESTAMP`, ON UPDATE `CURRENT_TIMESTAMP`)
+   - *Indexes*: `(city, country)`, `(price_per_night)`
+
+3. **`listing_images`**
+   - `id` (INTEGER, PK, Autoincrement)
+   - `listing_id` (INTEGER, FK `listings.id` ON DELETE CASCADE, INDEX)
+   - `image_url` (VARCHAR(500), NOT NULL)
+   - `display_order` (INTEGER, DEFAULT `0`)
+   - *Indexes*: `(listing_id, display_order)`
+
+4. **`amenities`**
+   - `id` (INTEGER, PK, Autoincrement)
+   - `name` (VARCHAR(100), UNIQUE, INDEX, NOT NULL)
+   - `icon` (VARCHAR(50), NULLABLE)
+
+5. **`listing_amenities` (Many-to-Many Association Table)**
+   - `listing_id` (INTEGER, FK `listings.id` ON DELETE CASCADE, PRIMARY KEY)
+   - `amenity_id` (INTEGER, FK `amenities.id` ON DELETE CASCADE, PRIMARY KEY)
+
+6. **`bookings`**
+   - `id` (INTEGER, PK, Autoincrement)
+   - `listing_id` (INTEGER, FK `listings.id` ON DELETE CASCADE, INDEX)
+   - `guest_id` (INTEGER, FK `users.id` ON DELETE CASCADE, INDEX)
+   - `check_in` (DATE, INDEX, NOT NULL)
+   - `check_out` (DATE, INDEX, NOT NULL)
+   - `guests` (INTEGER, DEFAULT `1`)
+   - `nights` (INTEGER, NOT NULL)
+   - `nightly_total` (FLOAT, NOT NULL)
+   - `cleaning_fee` (FLOAT, DEFAULT `0.0`)
+   - `service_fee` (FLOAT, DEFAULT `0.0`)
+   - `total_price` (FLOAT, NOT NULL)
+   - `status` (VARCHAR(30), DEFAULT `'confirmed'`, INDEX)
+   - `created_at` (DATETIME, DEFAULT `CURRENT_TIMESTAMP`)
+   - *Indexes*: `(listing_id, check_in, check_out)`, `(guest_id, status)`
+
+7. **`reviews`**
+   - `id` (INTEGER, PK, Autoincrement)
+   - `listing_id` (INTEGER, FK `listings.id` ON DELETE CASCADE, INDEX)
+   - `guest_id` (INTEGER, FK `users.id` ON DELETE CASCADE, INDEX)
+   - `rating` (INTEGER, NOT NULL, CHECK `rating >= 1 AND rating <= 5`)
+   - `comment` (TEXT, NOT NULL)
+   - `created_at` (DATETIME, DEFAULT `CURRENT_TIMESTAMP`)
+   - *Indexes*: `(listing_id, created_at)`
+
+8. **`favorites`**
+   - `id` (INTEGER, PK, Autoincrement)
+   - `user_id` (INTEGER, FK `users.id` ON DELETE CASCADE, INDEX)
+   - `listing_id` (INTEGER, FK `listings.id` ON DELETE CASCADE, INDEX)
+   - `created_at` (DATETIME, DEFAULT `CURRENT_TIMESTAMP`)
+   - *Constraint*: `UNIQUE(user_id, listing_id)`
+
+---
+
+## Database Seeding & Idempotency
+
+### Safe Seeding Approach
+The seeder prevents duplicate data while supporting clean reseeding:
+1. **Automatic Initialization**: On backend startup via FastAPI's `lifespan` handler, `auto_seed_if_empty()` verifies if listings exist. If the database is empty, it automatically populates the seed data so the application is instantly usable.
+2. **Idempotent CLI Runner**: Running `python -m app.seed` checks if listings are already present. If found, it safely skips insertion without duplicating records.
+3. **Clean Reset Flag**: Running `python -m app.seed --reset` drops and recreates all tables before freshly populating all relations.
+
+### Seed Commands
+
+```bash
+cd backend
+
+# Standard idempotent seed (skips if data exists)
+python -m app.seed
+
+# Clean wipe and re-seed
+python -m app.seed --reset
+
+# Run full database relationship & constraint verification test suite
+python -m app.seed.verify_db
+```
+
+### Seed Dataset Composition
+- **Users**: 6 realistic users (3 hosts, 3 guests with avatars)
+- **Amenities**: 18 standard Airbnb amenities with icons
+- **Listings**: 16 realistic worldwide listings across 8 property types (Villa, Cabin, Loft, Chalet, Treehouse, Beachfront, House, Apartment) in Paris, Amalfi, Kyoto, Aspen, Bali, Cape Town, Santorini, Banff, Tulum, Zurich, Maui, Reykjavik, Barcelona, London, Queenstown, Zermatt
+- **Images**: Multiple high-resolution Unsplash photography URLs per listing
+- **Reviews**: 15 verified guest reviews with realistic text and 4-5 star ratings
+- **Bookings**: 5 realistic sample bookings (completed past trips & upcoming confirmed stays)
+- **Favorites**: 12 wishlist favorites linking guests to dream destinations
+
+---
+
 ## Health Check Endpoint
 
 ```http
