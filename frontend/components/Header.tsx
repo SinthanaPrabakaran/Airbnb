@@ -98,20 +98,23 @@ export function Header({
               <button
                 onClick={onSearchClick}
                 type="button"
-                className="flex items-center divide-x divide-neutral-200 rounded-full border border-neutral-300 bg-white py-2 pl-5 pr-2 text-sm font-semibold text-neutral-800 shadow-xs transition hover:shadow-md hover:border-neutral-400 active:scale-98"
+                className="flex items-center divide-x divide-neutral-200 rounded-full border border-neutral-300 bg-white py-2 pl-4 pr-2 text-sm font-semibold text-neutral-800 shadow-xs transition hover:shadow-md hover:border-neutral-400 active:scale-98 cursor-pointer group"
                 aria-label="Search places"
               >
-                <span className="pr-4 text-neutral-900 font-medium truncate max-w-[120px]">
-                  {searchSummary.split("·")[0]?.trim() || "Anywhere"}
+                <div className="flex items-center gap-2 pr-3.5">
+                  <span className="text-lg leading-none select-none transition-transform group-hover:scale-110">🏡</span>
+                  <span className="text-neutral-900 font-bold truncate max-w-[130px]">
+                    {searchSummary.split("·")[0]?.trim() || "Anywhere"}
+                  </span>
+                </div>
+                <span className="px-3.5 text-neutral-900 font-bold truncate max-w-[130px]">
+                  {searchSummary.split("·")[1]?.trim() === "Any week" ? "Anytime" : searchSummary.split("·")[1]?.trim() || "Anytime"}
                 </span>
-                <span className="px-4 text-neutral-900 font-medium truncate max-w-[120px]">
-                  {searchSummary.split("·")[1]?.trim() || "Any week"}
-                </span>
-                <span className="pl-4 pr-3 text-neutral-500 font-normal truncate max-w-[100px]">
+                <span className="pl-3.5 pr-2.5 text-neutral-500 font-normal truncate max-w-[110px]">
                   {searchSummary.split("·")[2]?.trim() || "Add guests"}
                 </span>
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF385C] text-white transition hover:bg-[#E00B41] shrink-0">
-                  <Search className="h-4 w-4" />
+                  <Search className="h-4 w-4 stroke-[2.5]" />
                 </div>
               </button>
             </div>

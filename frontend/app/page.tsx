@@ -70,6 +70,22 @@ export default function ExplorePage() {
     sortBy: undefined,
   });
 
+  // Scroll tracking for Airbnb search morph animation
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY > 40;
+      setIsScrolled(scrolled);
+      if (scrolled) {
+        setIsSearchExpanded(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Load initial users and amenities
   useEffect(() => {
     let isMounted = true;
@@ -284,26 +300,57 @@ export default function ExplorePage() {
         onOpenFilters={() => setIsFilterModalOpen(true)}
         filterCount={activeFilterCount}
         onSearchClick={() => {
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          setIsSearchExpanded((prev) => !prev);
         }}
         searchSummary={searchSummary}
       />
 
-      {/* 2. Segmented Search Bar (Desktop / Tablet prominent section) */}
-      <section className="hidden md:block py-6 px-4 bg-white border-b border-neutral-100">
-        <SearchBar
-          location={searchLocation}
-          onLocationChange={setSearchLocation}
-          checkIn={checkIn}
-          onCheckInChange={setCheckIn}
-          checkOut={checkOut}
-          onCheckOutChange={setCheckOut}
-          guests={guests}
-          onGuestsChange={setGuests}
-          onSearch={() => fetchListings(1)}
-          onClear={handleClearAll}
-        />
-      </section>
+      {/* 2. Top Search Bar (When user is near top of page) */}
+      {!isScrolled && (
+        <section className="hidden md:block pt-3 pb-6 px-4 bg-white border-b border-neutral-100 transition-all duration-300">
+          <SearchBar
+            location={searchLocation}
+            onLocationChange={setSearchLocation}
+            checkIn={checkIn}
+            onCheckInChange={setCheckIn}
+            checkOut={checkOut}
+            onCheckOutChange={setCheckOut}
+            guests={guests}
+            onGuestsChange={setGuests}
+            onSearch={() => fetchListings(1)}
+            onClear={handleClearAll}
+          />
+        </section>
+      )}
+
+      {/* 2B. Scrolled Dropdown Overlay (When user clicks compact pill while scrolled) */}
+      {isScrolled && isSearchExpanded && (
+        <div
+          className="fixed inset-0 top-20 z-40 bg-black/30 backdrop-blur-2xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => setIsSearchExpanded(false)}
+        >
+          <div
+            className="bg-white border-b border-neutral-200 shadow-2xl py-6 px-4 animate-in slide-in-from-top-4 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <SearchBar
+              location={searchLocation}
+              onLocationChange={setSearchLocation}
+              checkIn={checkIn}
+              onCheckInChange={setCheckIn}
+              checkOut={checkOut}
+              onCheckOutChange={setCheckOut}
+              guests={guests}
+              onGuestsChange={setGuests}
+              onSearch={() => {
+                setIsSearchExpanded(false);
+                fetchListings(1);
+              }}
+              onClear={handleClearAll}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 3. Category Row Carousel */}
       <CategoryNav
